@@ -1,0 +1,86 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: devopsforge-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-devopsforge}
+      POSTGRES_USER: ${DB_USER:-devopsforge}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-devopsforge123}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-devopsforge} -d ${DB_NAME:-devopsforge}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - devopsforge-network
+
+  backend:
+    build:
+      context: ..
+      dockerfile: infra/backend/Dockerfile
+    container_name: devopsforge-backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-devopsforge}:${DB_PASSWORD:-devopsforge123}@postgres:5432/${DB_NAME:-devopsforge}
+      SECRET_KEY: ${SECRET_KEY:-dev-secret-key-change-in-production}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      PYTHONUNBUFFERED: 1
+    volumes:
+      - ../backend:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    networks:
+      - devopsforge-network
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: infra/frontend/Dockerfile
+    container_name: devopsforge-frontend
+    restart: unless-stopped
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
+      CHOKIDAR_USEPOLLING: ${CHOKIDAR_USEPOLLING:-true}
+    volumes:
+      - ../frontend:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    networks:
+      - devopsforge-network
+
+  nginx:
+    image: nginx:alpine
+    container_name: devopsforge-nginx
+    restart: unless-stopped
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - devopsforge-network
+
+networks:
+  devopsforge-network:
+    driver: bridge
+
+volumes:
+  postgres_data:

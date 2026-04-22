@@ -1,0 +1,6 @@
+.env
+*.log
+backups/
+postgres_data/
+*.pid
+.DS_Store
