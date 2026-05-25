@@ -1,0 +1,46 @@
+# Python
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/.venv
+**/venv
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+
+# Локальная SQLite-БД (в контейнере используется Postgres)
+**/tasks.db
+**/*.sqlite
+**/*.sqlite3
+
+# Node
+**/node_modules
+**/npm-debug.log
+**/yarn-debug.log
+**/yarn-error.log
+
+# Сборка фронта (контейнер строит сам)
+frontend/dist
+
+# Локальные данные деплоев и кэш git
+**/deploy_workspace
+
+# IDE / OS
+**/.idea
+**/.vscode
+**/.DS_Store
+**/Thumbs.db
+
+# Git
+.git
+.gitignore
+
+# Переменные окружения (передаются через docker compose)
+**/.env
+!**/.env.example
+
+# Документация и скрипты, не нужные в образе
+*.md
+!README.md
+start_all.bat
